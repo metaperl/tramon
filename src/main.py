@@ -203,7 +203,7 @@ class Entry(object):
         self.browser.find_by_xpath("//*[@type='submit']").click()
 
         print("Now for the login ad.")
-        wait_time = 45
+        wait_time = 20
         for i in progress.bar(range(wait_time)):
             time.sleep(1)
 
