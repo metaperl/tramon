@@ -96,6 +96,7 @@ def wait_visible(driver, locator, by=By.XPATH, timeout=300):
 
 def maybe_accept_alert(driver):
     try:
+        logging.warn("Probing for alert.")
         ui.WebDriverWait(driver, 3).until(EC.alert_is_present(),
                                           'Timed out waiting for PA creation ' +
                                           'confirmation popup to appear.')
@@ -189,18 +190,18 @@ class Entry(object):
         self.browser_visit('login')
 
         self.browser.find_by_name('Username').type(self._username)
-        self.browser.find_by_name('Password').type(self._password)
+        self.browser.find_by_name('Password').type("{0}\t".format(self._password))
 
-        print("Please enter the CAPTCHA now.")
-        wait_time = 10
-        for i in progress.bar(range(wait_time)):
-            time.sleep(1)
+        # print("Please enter the CAPTCHA now.")
+        # wait_time = 10
+        # for i in progress.bar(range(wait_time)):
+        #     time.sleep(1)
 
         # captcha_elem = self.browser.find_by_id('captcha').first
         # captcha_file = 'captcha.png'
         # element_screenshot(self.browser.driver, captcha_elem, captcha_file)
 
-        self.browser.find_by_xpath("//*[@type='submit']").click()
+        # self.browser.find_by_xpath("//*[@type='submit']").click()
 
         print("Now for the login ad.")
         wait_time = 20
