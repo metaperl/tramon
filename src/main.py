@@ -80,13 +80,19 @@ def click_element_with_offset(driver, elem, x, y):
     action.click()
     action.perform()
 
-
 def page_source(browser):
     document_root = browser.driver.page_source
     return document_root
 
-
 def wait_visible(driver, locator, by=By.XPATH, timeout=300):
+    """
+
+    :param driver:
+    :param locator:
+    :param by:
+    :param timeout:
+    :return:
+    """
     try:
         if ui.WebDriverWait(driver, timeout).until(EC.visibility_of_element_located((by, locator))):
             return driver.find_element(by, locator)
@@ -192,26 +198,7 @@ class Entry(object):
         self.browser.find_by_name('Username').type(self._username)
         self.browser.find_by_name('Password').type("{0}\t".format(self._password))
 
-        # print("Please enter the CAPTCHA now.")
-        # wait_time = 10
-        # for i in progress.bar(range(wait_time)):
-        #     time.sleep(1)
-
-        # captcha_elem = self.browser.find_by_id('captcha').first
-        # captcha_file = 'captcha.png'
-        # element_screenshot(self.browser.driver, captcha_elem, captcha_file)
-
-        # self.browser.find_by_xpath("//*[@type='submit']").click()
-
-        print("Now for the login ad.")
-        wait_time = 20
-        for i in progress.bar(range(wait_time)):
-            time.sleep(1)
-
-            # solver = CaptchaSolver('browser')
-            # with open(captcha_file, 'rb') as inp:
-            #     raw_data = inp.read()
-            # print(solver.solve_captcha(raw_data))
+        wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]')
 
     def browser_visit(self, action_label):
         try:
@@ -245,7 +232,7 @@ class Entry(object):
 
         time.sleep(random.randrange(2, 5))
 
-        click_prompt_elem = wait_visible(self.browser.driver, '//p')
+        wait_visible(self.browser.driver, '//p')
 
         candidate_images_elem = self.browser.find_by_xpath('//div[@id="site_loader"]/img')
         image_count = collections.defaultdict(lambda: 0)
@@ -259,7 +246,7 @@ class Entry(object):
 
     def wait_on_ad(self):
         time_to_wait_on_ad = random.randrange(40, 50)
-        for i in progress.bar(range(time_to_wait_on_ad)):
+        for _ in progress.bar(range(time_to_wait_on_ad)):
             time.sleep(1)
 
     def buy_pack(self):
