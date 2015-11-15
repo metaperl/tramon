@@ -43,7 +43,7 @@ base_url = 'http://www.trafficmonsoon.com/'
 action_path = dict(
     login='',
     view_ads='member/surf.php',
-    dashboard='Dot_MembersPage.asp',
+    dashboard='member/overview.php',
     withdraw='DotwithdrawForm.asp',
     buy_pack='members/sales/packages'
 )
@@ -84,7 +84,7 @@ def page_source(browser):
     document_root = browser.driver.page_source
     return document_root
 
-def wait_visible(driver, locator, by=By.XPATH, timeout=300):
+def wait_visible(driver, locator, by=By.XPATH, timeout=30):
     """
 
     :param driver:
@@ -198,7 +198,14 @@ class Entry(object):
         self.browser.find_by_name('Username').type(self._username)
         self.browser.find_by_name('Password').type("{0}\t".format(self._password))
 
+        self.maybe_robot_login()
+
         wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]')
+
+    def maybe_robot_login(self):
+        if wait_visible(self.browser.driver, "//div[@class='alert alert-danger']", timeout=10):
+            self.browser.find_by_name('Username').type(self._username)
+            self.browser.find_by_name('Password').type("{0}\t".format(self._password))
 
     def browser_visit(self, action_label):
         try:
@@ -218,28 +225,26 @@ class Entry(object):
             return 253
 
     def view_ads(self, surf_amount):
+        self.browser_visit('view_ads')
         for i in xrange(1, surf_amount + 1):
             while True:
-                print("Viewing ad {0}".format(i))
+                print("Viewing ad {0} of {1}".format(i, surf_amount))
                 result = self.view_ad()
                 if result == 0:
                     break
+        self.browser_visit('dashboard')
 
     @trap_alert
     def view_ad(self):
-        logging.warn("Visiting viewads")
-        self.browser_visit('view_ads')
-
-        time.sleep(random.randrange(2, 5))
-
-        wait_visible(self.browser.driver, '//p')
-
-        candidate_images_elem = self.browser.find_by_xpath('//div[@id="site_loader"]/img')
+        candidate_images_elem = wait_visible(self.browser.driver, '//div[@id="site_loader"]/img', timeout=25)
         image_count = collections.defaultdict(lambda: 0)
         for image in candidate_images_elem:
             image_count[image['src']] += 1
             if image_count[image['src']] > 1:
+                time.sleep(random.randrange(2, 5))
+                print("Clicking image.")
                 image.click()
+                wait_visible(self.browser.driver, '//a[text()="Next Site"]', timeout=5).click()
                 return 0
 
         return 255
