@@ -140,7 +140,7 @@ def trap_alert(func):
             alert.accept()
             return 254
         except WebDriverException:
-            print("Caught webdriver exception.")
+            logging.info("Caught webdriver exception.")
             return 253
 
     return wrapper
@@ -198,9 +198,9 @@ class Entry(object):
         self.browser.find_by_name('Username').type(self._username)
         self.browser.find_by_name('Password').type("{0}\t".format(self._password))
 
-        self.maybe_robot_login()
+        if not wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]', timeout=45):
+            return self.login()
 
-        wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]')
 
     def maybe_robot_login(self):
         if wait_visible(self.browser.driver, "//div[@class='alert alert-danger']", timeout=10):
@@ -236,7 +236,10 @@ class Entry(object):
 
     @trap_alert
     def view_ad(self):
-        candidate_images_elem = wait_visible(self.browser.driver, '//div[@id="site_loader"]/img', timeout=25)
+        wait_visible(
+            self.browser.driver, "//p[text()='Click identical image to validate site view.']", timeout=60
+        )
+        candidate_images_elem = self.browser.find_by_xpath('//div[@id="site_loader"]/img')
         image_count = collections.defaultdict(lambda: 0)
         for image in candidate_images_elem:
             image_count[image['src']] += 1
@@ -312,7 +315,7 @@ class Entry(object):
         button.click()
 
 
-def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=12):
+def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=10):
     config = ConfigParser.ConfigParser()
     config.read(conf)
     username = config.get('login', 'username')
