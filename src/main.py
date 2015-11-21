@@ -41,7 +41,7 @@ pp = pprint.PrettyPrinter(indent=4)
 base_url = 'http://www.trafficmonsoon.com/'
 
 action_path = dict(
-    login='',
+    login='login',
     view_ads='member/surf.php',
     dashboard='member/overview.php',
     withdraw='DotwithdrawForm.asp',
@@ -106,7 +106,7 @@ def maybe_accept_alert(driver):
         ui.WebDriverWait(driver, 3).until(EC.alert_is_present(),
                                           'Timed out waiting for PA creation ' +
                                           'confirmation popup to appear.')
-
+        print("Switching to alert.")
         alert = driver.switch_to_alert()
         alert.accept()
         print("alert accepted")
@@ -209,11 +209,15 @@ class Entry(object):
 
     def browser_visit(self, action_label):
         try:
+            self.browser.driver.set_page_load_timeout(40)
             print("Visiting URL for {0}".format(action_label))
             self.browser.visit(url_for_action(action_label))
             if action_label == 'view_ads':
                 maybe_accept_alert(self.browser.driver)
             return 0
+        except TimeoutException:
+            logging.info("Page load timeout.")
+            pass
         except UnexpectedAlertPresentException:
             print("Caught UnexpectedAlertPresentException.")
             logging.warn("Attempting to dismiss alert")
@@ -225,9 +229,10 @@ class Entry(object):
             return 253
 
     def view_ads(self, surf_amount):
-        self.browser_visit('view_ads')
+
         for i in xrange(1, surf_amount + 1):
             while True:
+                self.browser_visit('view_ads')
                 print("Viewing ad {0} of {1}".format(i, surf_amount))
                 result = self.view_ad()
                 if result == 0:
@@ -323,7 +328,8 @@ def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=10):
 
     with Browser() as browser:
         browser.driver.set_window_size(1200, 1100)
-        browser.driver.set_window_position(600, 0)
+        browser.driver.set_window_position(420, 0)
+
         e = Entry(username, password, browser)
 
         e.login()
