@@ -247,12 +247,9 @@ class Entry(object):
         for image in candidate_images_elem:
             image_count[image['src']] += 1
             if image_count[image['src']] > 1:
-                time.sleep(random.randrange(2, 5))
-                print("Clicking image.")
+                logging.info("Clicking image.")
                 image.click()
-                wait_visible(self.browser.driver, '//a[text()="Next Site"]', timeout=5).click()
                 return 0
-
         return 255
 
     def wait_on_ad(self):
