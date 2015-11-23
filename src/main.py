@@ -209,11 +209,9 @@ class Entry(object):
 
     def browser_visit(self, action_label):
         try:
-            self.browser.driver.set_page_load_timeout(40)
             print("Visiting URL for {0}".format(action_label))
             self.browser.visit(url_for_action(action_label))
-            if action_label == 'view_ads':
-                maybe_accept_alert(self.browser.driver)
+            maybe_accept_alert(self.browser.driver)
             return 0
         except TimeoutException:
             logging.info("Page load timeout.")
@@ -327,8 +325,10 @@ def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=10):
     password = config.get('login', 'password')
 
     with Browser() as browser:
+
         browser.driver.set_window_size(1200, 1100)
         browser.driver.set_window_position(420, 0)
+        browser.driver.set_page_load_timeout(40)
 
         e = Entry(username, password, browser)
 
