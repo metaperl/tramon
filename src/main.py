@@ -16,7 +16,6 @@ import ConfigParser
 import argh
 
 from clint.textui import progress
-import funcy
 from PIL import Image
 from splinter import Browser
 from selenium.webdriver.common.action_chains import ActionChains
@@ -95,6 +94,22 @@ def wait_visible(driver, locator, by=By.XPATH, timeout=30):
     """
     try:
         if ui.WebDriverWait(driver, timeout).until(EC.visibility_of_element_located((by, locator))):
+            return driver.find_element(by, locator)
+    except TimeoutException:
+        return False
+
+
+def wait_element_selected(driver, locator, by=By.XPATH, timeout=30):
+    """
+
+    :param driver:
+    :param locator:
+    :param by:
+    :param timeout:
+    :return:
+    """
+    try:
+        if ui.WebDriverWait(driver, timeout).until(EC.element_located_to_be_selected((by, locator))):
             return driver.find_element(by, locator)
     except TimeoutException:
         return False
@@ -198,9 +213,15 @@ class Entry(object):
         self.browser.find_by_name('Username').type(self._username)
         self.browser.find_by_name('Password').type("{0}\t".format(self._password))
 
-        if not wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]', timeout=45):
-            return self.login()
+        captcha_answer = raw_input("CAPTCHA characters: ")
+        self.browser.find_by_name('turing').type(captcha_answer)
 
+        button_xpath = '//input[@type="submit"]'
+        self.browser.find_by_xpath(button_xpath).click()
+
+        while not wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]', timeout=45):
+            time.sleep(10)
+            print("back to dashboard not seen yet")
 
     def maybe_robot_login(self):
         if wait_visible(self.browser.driver, "//div[@class='alert alert-danger']", timeout=10):
@@ -297,23 +318,6 @@ class Entry(object):
         # for i, e in enumerate(elem):
         #     print("{0}, {1}".format(i, e.text))
 
-    def solve_captcha(self):
-        time.sleep(3)
-
-        t = page_source(self.browser).encode('utf-8').strip()
-        # print("Page source {0}".format(t))
-
-        captcha = funcy.re_find(
-            """ctx.strokeText\('(\d+)'""", t)
-
-        # print("CAPTCHA = {0}".format(captcha))
-
-        self.browser.find_by_name('codeSb').fill(captcha)
-
-        time.sleep(6)
-        button = self.browser.find_by_name('Submit')
-        button.click()
-
 
 def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=10):
     config = ConfigParser.ConfigParser()
@@ -324,8 +328,8 @@ def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=10):
     with Browser() as browser:
 
         browser.driver.set_window_size(1200, 1100)
-        browser.driver.set_window_position(420, 0)
-        browser.driver.set_page_load_timeout(40)
+        browser.driver.set_window_position(200, 0)
+        browser.driver.set_page_load_timeout(60)
 
         e = Entry(username, password, browser)
 
