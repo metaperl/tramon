@@ -44,7 +44,7 @@ action_path = dict(
     view_ads='member/surf.php',
     dashboard='member/overview.php',
     withdraw='DotwithdrawForm.asp',
-    buy_pack='members/sales/packages'
+    buy_pack='member/optools_ppc.php'
 )
 
 one_minute = 60
@@ -93,9 +93,11 @@ def wait_visible(driver, locator, by=By.XPATH, timeout=30):
     :return:
     """
     try:
-        if ui.WebDriverWait(driver, timeout).until(EC.visibility_of_element_located((by, locator))):
-            return driver.find_element(by, locator)
+        ui.WebDriverWait(driver, timeout).until(EC.visibility_of_element_located((by, locator)))
+        logging.info("wait_visible succeeded.")
+        return driver.find_element(by, locator)
     except TimeoutException:
+        logging.info("wait_visible TimeoutException.")
         return False
 
 
@@ -219,9 +221,10 @@ class Entry(object):
         button_xpath = '//input[@type="submit"]'
         self.browser.find_by_xpath(button_xpath).click()
 
-        while not wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]', timeout=45):
-            time.sleep(10)
-            print("back to dashboard not seen yet")
+        if wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]'):
+            logging.info("back to dashboard seen.")
+        else:
+            self.login()
 
     def maybe_robot_login(self):
         if wait_visible(self.browser.driver, "//div[@class='alert alert-danger']", timeout=10):
@@ -280,11 +283,12 @@ class Entry(object):
 
     def buy_pack(self):
         self.browser_visit('buy_pack')
-        self.browser.find_by_name('qty[18]').first.type("1")
-        self.browser.select('processor[18]', "4")  # Solid Trust Pay for the win
-        self.browser.execute_script("buy_sales_package(18)")
-        with self.browser.get_alert() as alert:
-            alert.accept()
+        self.browser.click_link_by_partial_text("Buy AdPack")
+        self.browser.find_by_xpath('//button[@data-toggle="dropdown"]').first.click()
+        self.browser.find_by_xpath('//span[contains(text(), "account balance")]').first.click()
+        self.browser.find_by_xpath('//input[@type="submit"]').first.click()  # preview button
+        self.browser.find_by_xpath('//input[@type="submit"]')[1].click()  # confirm
+        maybe_accept_alert(self.browser.driver)
 
     def calc_account_balance(self):
         time.sleep(1)
