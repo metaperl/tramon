@@ -16,15 +16,16 @@ import ConfigParser
 import argh
 
 from clint.textui import progress
-from PIL import Image
-from splinter import Browser
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import \
     TimeoutException, UnexpectedAlertPresentException, WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-import selenium.webdriver.support.expected_conditions as EC
+import selenium.webdriver.support.expected_conditions as ec
 import selenium.webdriver.support.ui as ui
+from splinter import Browser
+from splinter.exceptions import ElementDoesNotExist
+
 
 # Local
 
@@ -79,9 +80,11 @@ def click_element_with_offset(driver, elem, x, y):
     action.click()
     action.perform()
 
+
 def page_source(browser):
     document_root = browser.driver.page_source
     return document_root
+
 
 def wait_visible(driver, locator, by=By.XPATH, timeout=30):
     """
@@ -93,7 +96,7 @@ def wait_visible(driver, locator, by=By.XPATH, timeout=30):
     :return:
     """
     try:
-        ui.WebDriverWait(driver, timeout).until(EC.visibility_of_element_located((by, locator)))
+        ui.WebDriverWait(driver, timeout).until(ec.visibility_of_element_located((by, locator)))
         logging.info("wait_visible succeeded.")
         return driver.find_element(by, locator)
     except TimeoutException:
@@ -111,7 +114,7 @@ def wait_element_selected(driver, locator, by=By.XPATH, timeout=30):
     :return:
     """
     try:
-        if ui.WebDriverWait(driver, timeout).until(EC.element_located_to_be_selected((by, locator))):
+        if ui.WebDriverWait(driver, timeout).until(ec.element_located_to_be_selected((by, locator))):
             return driver.find_element(by, locator)
     except TimeoutException:
         return False
@@ -120,7 +123,7 @@ def wait_element_selected(driver, locator, by=By.XPATH, timeout=30):
 def maybe_accept_alert(driver):
     try:
         logging.warn("Probing for alert.")
-        ui.WebDriverWait(driver, 3).until(EC.alert_is_present(),
+        ui.WebDriverWait(driver, 3).until(ec.alert_is_present(),
                                           'Timed out waiting for PA creation ' +
                                           'confirmation popup to appear.')
         print("Switching to alert.")
@@ -171,41 +174,12 @@ def echo_print(text, elem):
     print("{0}={1}.".format(text, elem))
 
 
-# https://stackoverflow.com/questions/10848900/how-to-take-partial-screenshot-frame-with-selenium-webdriver/26225137#26225137?newreg=8807b51813c4419abbb37ab2fe696b1a
-
-
-def element_screenshot(driver, element, filename):
-    t = type(element).__name__
-
-    if t == 'WebDriverElement':
-        element = element._element
-    bounding_box = (
-        element.location['x'],  # left
-        element.location['y'],  # upper
-        (element.location['x'] + element.size['width']),  # right
-        (element.location['y'] + element.size['height'])  # bottom
-    )
-    bounding_box = map(int, bounding_box)
-    echo_print('Bounding Box', bounding_box)
-    return bounding_box_screenshot(driver, bounding_box, filename)
-
-
-def bounding_box_screenshot(driver, bounding_box, filename):
-    driver.save_screenshot(filename)
-    base_image = Image.open(filename)
-    cropped_image = base_image.crop(bounding_box)
-    base_image = base_image.resize(
-        [int(i) for i in cropped_image.size])
-    base_image.paste(cropped_image, (0, 0))
-    base_image.save(filename)
-    return base_image
-
-
 class Entry(object):
     def __init__(self, username, password, browser):
         self._username = username
         self._password = password
         self.browser = browser
+        self.account_balance = None
 
     def login(self):
         print("Logging in...")
@@ -276,7 +250,8 @@ class Entry(object):
                 return 0
         return 255
 
-    def wait_on_ad(self):
+    @staticmethod
+    def wait_on_ad():
         time_to_wait_on_ad = random.randrange(40, 50)
         for _ in progress.bar(range(time_to_wait_on_ad)):
             time.sleep(1)
@@ -284,9 +259,18 @@ class Entry(object):
     def buy_pack(self):
         self.browser_visit('buy_pack')
         self.browser.click_link_by_partial_text("Buy AdPack")
-        self.browser.find_by_xpath('//button[@data-toggle="dropdown"]').first.click()
-        self.browser.find_by_xpath('//span[contains(text(), "account balance")]').first.click()
+
+        button = wait_visible(self.browser.driver, '//button[@data-toggle="dropdown"]')
+        button.click()
+
+        try:
+            self.browser.find_by_xpath('//span[contains(text(), "account balance")]').first.click()
+        except ElementDoesNotExist:
+            logging.info("Account balance element does not exist.")
+            return 255
+
         self.browser.find_by_xpath('//input[@type="submit"]').first.click()  # preview button
+        time.sleep(2)
         self.browser.find_by_xpath('//input[@type="submit"]')[1].click()  # confirm
         maybe_accept_alert(self.browser.driver)
 
@@ -323,13 +307,13 @@ class Entry(object):
         #     print("{0}, {1}".format(i, e.text))
 
 
-def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=10):
+def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=12):
     config = ConfigParser.ConfigParser()
     config.read(conf)
     username = config.get('login', 'username')
     password = config.get('login', 'password')
 
-    with Browser() as browser:
+    with Browser('chrome') as browser:
 
         browser.driver.set_window_size(1200, 1100)
         browser.driver.set_window_position(200, 0)
