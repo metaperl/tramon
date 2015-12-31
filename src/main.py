@@ -181,29 +181,37 @@ class Entry(object):
         self.browser = browser
         self.account_balance = None
 
+    def enter_user_pass(self):
+        self.browser.find_by_name('Username').type(self._username)
+        self.browser.find_by_name('Password').type("{0}\t".format(self._password))
+
+    def enter_captcha(self):
+        captcha_answer = raw_input("CAPTCHA characters: ")
+        self.browser.find_by_name('turing').type("{0}\n".format(captcha_answer))
+
+    def maybe_robot_login(self):
+        logging.info("Waiting on 'You are a robot...'")
+        if wait_visible(self.browser.driver, "//div[@class='alert alert-danger']", timeout=5):
+            self.enter_user_pass()
+
+            self.enter_captcha()
+
+    def wait_on_login_ad(self):
+        logging.info("Waiting on login ad to complete...")
+        if wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]', timeout=60):
+            logging.info("back to dashboard seen.")
+        else:
+            self.login()
+
     def login(self):
         print("Logging in...")
 
         self.browser_visit('login')
 
-        self.browser.find_by_name('Username').type(self._username)
-        self.browser.find_by_name('Password').type("{0}\t".format(self._password))
-
-        captcha_answer = raw_input("CAPTCHA characters: ")
-        self.browser.find_by_name('turing').type(captcha_answer)
-
-        button_xpath = '//input[@type="submit"]'
-        self.browser.find_by_xpath(button_xpath).click()
-
-        if wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]'):
-            logging.info("back to dashboard seen.")
-        else:
-            self.login()
-
-    def maybe_robot_login(self):
-        if wait_visible(self.browser.driver, "//div[@class='alert alert-danger']", timeout=10):
-            self.browser.find_by_name('Username').type(self._username)
-            self.browser.find_by_name('Password').type("{0}\t".format(self._password))
+        self.enter_user_pass()
+        self.enter_captcha()
+        self.maybe_robot_login()
+        self.wait_on_login_ad()
 
     def browser_visit(self, action_label):
         try:
@@ -317,7 +325,7 @@ def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=12):
 
         browser.driver.set_window_size(1200, 1100)
         browser.driver.set_window_position(200, 0)
-        browser.driver.set_page_load_timeout(60)
+        browser.driver.set_page_load_timeout(180)
 
         e = Entry(username, password, browser)
 
