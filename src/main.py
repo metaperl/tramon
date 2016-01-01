@@ -174,6 +174,9 @@ def echo_print(text, elem):
     print("{0}={1}.".format(text, elem))
 
 
+control_a = "\x01"
+
+
 class Entry(object):
     def __init__(self, username, password, browser):
         self._username = username
@@ -182,7 +185,7 @@ class Entry(object):
         self.account_balance = None
 
     def enter_user_pass(self):
-        self.browser.find_by_name('Username').type(self._username)
+        self.browser.find_by_name('Username').type(control_a + self._username)
         self.browser.find_by_name('Password').type("{0}\t".format(self._password))
 
     def enter_captcha(self):
@@ -193,7 +196,6 @@ class Entry(object):
         logging.info("Waiting on 'You are a robot...'")
         if wait_visible(self.browser.driver, "//div[@class='alert alert-danger']", timeout=5):
             self.enter_user_pass()
-
             self.enter_captcha()
 
     def wait_on_login_ad(self):
@@ -272,14 +274,22 @@ class Entry(object):
         button.click()
 
         try:
+            logging.info("")
             self.browser.find_by_xpath('//span[contains(text(), "account balance")]').first.click()
+            time.sleep(5)
         except ElementDoesNotExist:
             logging.info("Account balance element does not exist.")
             return 255
 
+        logging.info("Clicking preview.")
         self.browser.find_by_xpath('//input[@type="submit"]').first.click()  # preview button
-        time.sleep(2)
+        time.sleep(5)
+
+        logging.info("Clicking confirm.")
         self.browser.find_by_xpath('//input[@type="submit"]')[1].click()  # confirm
+        time.sleep(5)
+
+        logging.info("Accepting alert if present...")
         maybe_accept_alert(self.browser.driver)
 
     def calc_account_balance(self):
