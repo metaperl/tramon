@@ -182,7 +182,6 @@ class Entry(object):
         self._username = username
         self._password = password
         self.browser = browser
-        self.account_balance = None
 
     def enter_user_pass(self):
         self.browser.find_by_name('Username').type(control_a + self._username)
@@ -267,6 +266,14 @@ class Entry(object):
             time.sleep(1)
 
     def buy_pack(self):
+
+        self.calc_account_balance()
+
+        packs_to_buy = int(self.account_balance / 50)
+        logging.info("We can buy {0} packs with {1}".format(packs_to_buy, self.account_balance))
+        if not packs_to_buy:
+            return
+
         self.browser_visit('buy_pack')
         self.browser.click_link_by_partial_text("Buy AdPack")
 
@@ -276,6 +283,7 @@ class Entry(object):
         try:
             logging.info("")
             self.browser.find_by_xpath('//span[contains(text(), "account balance")]').first.click()
+            self.browser.fill("number", str(packs_to_buy))
             time.sleep(5)
         except ElementDoesNotExist:
             logging.info("Account balance element does not exist.")
@@ -300,18 +308,19 @@ class Entry(object):
 
         logging.warn("finding element by xpath")
         elem = self.browser.find_by_xpath(
-            '/html/body/table[2]/tbody/tr/td[2]/table/tbody/tr/td[2]/table[6]/tbody/tr/td/table/tbody/tr[2]/td/h2[2]/font/font'
-        )
+                "//a[@href='./cash.php']")[1]
 
         print("Elem Text: {}".format(elem.text))
 
-        self.account_balance = float(elem.text[1:])
+        dollars = elem.text[1:-1]
+
+        print("Dollars={0}".format(dollars))
+
+        self.account_balance = float(dollars)
 
         print("Available Account Balance: {}".format(self.account_balance))
 
     def calc_credit_packs(self):
-        time.sleep(1)
-
         logging.warn("visiting dashboard")
         self.browser_visit('dashboard')
 
