@@ -184,7 +184,7 @@ class Entry(object):
         self.browser = browser
 
     def enter_user_pass(self):
-        self.browser.find_by_name('Username').type(control_a + self._username)
+        self.browser.find_by_name('Username').type(self._username)
         self.browser.find_by_name('Password').type("{0}\t".format(self._password))
 
     def enter_captcha(self):
@@ -193,9 +193,8 @@ class Entry(object):
 
     def maybe_robot_login(self):
         logging.info("Waiting on 'You are a robot...'")
-        if wait_visible(self.browser.driver, "//div[@class='alert alert-danger']", timeout=5):
-            self.enter_user_pass()
-            self.enter_captcha()
+        return wait_visible(
+                self.browser.driver, "//div[@class='alert alert-danger']", timeout=3)
 
     def wait_on_login_ad(self):
         logging.info("Waiting on login ad to complete...")
@@ -211,8 +210,10 @@ class Entry(object):
 
         self.enter_user_pass()
         self.enter_captcha()
-        self.maybe_robot_login()
-        self.wait_on_login_ad()
+        if self.maybe_robot_login():
+            self.login()
+        else:
+            self.wait_on_login_ad()
 
     def browser_visit(self, action_label):
         try:
@@ -299,6 +300,7 @@ class Entry(object):
 
         logging.info("Accepting alert if present...")
         maybe_accept_alert(self.browser.driver)
+        time.sleep(1)
 
     def calc_account_balance(self):
         time.sleep(1)
@@ -307,8 +309,9 @@ class Entry(object):
         self.browser_visit('dashboard')
 
         logging.warn("finding element by xpath")
-        elem = self.browser.find_by_xpath(
-                "//a[@href='./cash.php']")[1]
+
+        elem = wait_visible(
+                self.browser.driver, "//a[@style='text-decoration: none;']", timeout=300)
 
         print("Elem Text: {}".format(elem.text))
 
@@ -334,17 +337,18 @@ class Entry(object):
         #     print("{0}, {1}".format(i, e.text))
 
 
-def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=12):
+def main(conf, surf=False, buy_pack=False, stay_up=False, surf_amount=10):
     config = ConfigParser.ConfigParser()
     config.read(conf)
     username = config.get('login', 'username')
     password = config.get('login', 'password')
 
-    with Browser('chrome') as browser:
+    #    with Browser('chrome') as browser:
+    with Browser() as browser:
 
         browser.driver.set_window_size(1200, 1100)
         browser.driver.set_window_position(200, 0)
-        browser.driver.set_page_load_timeout(180)
+        browser.driver.set_page_load_timeout(30)
 
         e = Entry(username, password, browser)
 
