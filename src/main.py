@@ -276,6 +276,7 @@ class Entry(object):
             return
 
         self.browser_visit('buy_pack')
+        _ = wait_visible(self.browser.driver, '//a[@href="./tickets.php"]')
         self.browser.click_link_by_partial_text("Buy AdPack")
 
         button = wait_visible(self.browser.driver, '//button[@data-toggle="dropdown"]')
