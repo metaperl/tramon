@@ -196,12 +196,24 @@ class Entry(object):
         return wait_visible(
                 self.browser.driver, "//div[@class='alert alert-danger']", timeout=3)
 
+    def on_dashboard(self):
+        logging.info("On dashboard?")
+        if wait_visible(self.browser.driver, '//h1[text()="Account Balance:"]', timeout=15):
+            logging.info("On dashboard.")
+            return True
+        else:
+            logging.info("Not on dashboard.")
+            return False
+
     def wait_on_login_ad(self):
         logging.info("Waiting on login ad to complete...")
-        if wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]', timeout=60):
+        if wait_visible(self.browser.driver, '//span[text()="Back to Dashboard"]', timeout=15):
             logging.info("back to dashboard seen.")
         else:
-            self.login()
+            if self.on_dashboard():
+                return True
+            else:
+                self.login()
 
     def login(self):
         print("Logging in...")
